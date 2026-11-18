@@ -23,25 +23,27 @@ jobs:
           arch: x64
           toolset: '14.44'
 
-      - name: Install ATL component (required by breakpad)
-        shell: pwsh
+      - name: Skip breakpad (ATL not available on runner)
+        shell: python
         run: |
-          $vsPath = "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise"
-          # Try vs_installer first
-          $installer = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vs_installer.exe"
-          $proc = Start-Process -FilePath $installer -ArgumentList "modify","--installPath",$vsPath,"--add","Microsoft.VisualStudio.Component.VC.ATL","--quiet","--norestart","--wait" -Wait -PassThru
-          Write-Output "vs_installer exit code: $($proc.ExitCode)"
-          # Verify
-          $atlPath = "$vsPath\\VC\\atlmfc\\include\\atlbase.h"
-          Write-Output "ATL present: $(Test-Path $atlPath)"
-          if (-not (Test-Path $atlPath)) {
-            # Fallback: try vs_buildtools standalone
-            Write-Output "Trying vs_buildtools standalone..."
-            Invoke-WebRequest -Uri "https://aka.ms/vs/18/release/vs_buildtools.exe" -OutFile "vs_buildtools.exe" -ErrorAction SilentlyContinue
-            $p2 = Start-Process -FilePath ".\\vs_buildtools.exe" -ArgumentList "--quiet","--wait","--norestart","--nocache","--add","Microsoft.VisualStudio.Component.VC.ATL","--installPath",$vsPath -Wait -PassThru
-            Write-Output "vs_buildtools exit code: $($p2.ExitCode)"
-            Write-Output "ATL present after fallback: $(Test-Path $atlPath)"
-          }
+          import re
+          p = "C:/build/tdesktop/Telegram/build/prepare/prepare.py"
+          s = open(p).read()
+          # Find the breakpad stage block and remove it
+          start = s.find("stage('breakpad'")
+          if start == -1:
+              print("breakpad stage not found, skipping patch")
+          else:
+              # find the matching closing - search for next "\n\n" followed by stage( or end
+              # The stage call ends with a triple-quoted string followed by ")"
+              # Find from start to the next stage( or end of file
+              end = s.find("stage('", start + 1)
+              if end == -1:
+                  end = len(s)
+              # Remove from start to end, keeping a newline
+              s = s[:start] + s[end:]
+              open(p, 'w').write(s)
+              print("Patched prepare.py: removed breakpad stage")
 
       - name: Setup Python
         uses: actions/setup-python@v5
