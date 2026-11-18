@@ -72,6 +72,19 @@ jobs:
           Set-Location "$env:GITHUB_WORKSPACE\plugin-host"
           node --test 'test/*.test.mjs'
 
+      - name: Free disk space on runner
+        shell: pwsh
+        run: |
+          # Remove large pre-installed SDKs to free space for Qt build
+          Remove-Item -Recurse -Force "C:\Program Files (x86)\Android" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Program Files\Android" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\hostedtoolcache\windows\stack" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\tools\php" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\mingw64" -ErrorAction SilentlyContinue
+          # Remove large .NET SDK versions (keep 8.0)
+          Get-ChildItem "C:\Program Files\dotnet\sdk" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '8.*' } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='FreeGB';E={[math]::Round($_.Free/1GB,2)}} | Format-Table -AutoSize
+
       - name: Prepare tdesktop dependencies
         shell: pwsh
         run: |
