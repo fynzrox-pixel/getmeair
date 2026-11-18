@@ -1,0 +1,10 @@
+{
+  "name": "getmeair-plugin-host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Process-isolated plugin host for Getmeair.",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

@@ -1,0 +1,23 @@
+# Build outputs (do not commit; produced by CI)
+build/
+installer/payload.zip
+installer/Getmeair Setup.exe
+installer/build_installer.log
+installer/_payload/
+
+# Node
+node_modules/
+server/data/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keep source overlay but not the junctioned tdesktop tree
+source/
+
+# Release artifacts are produced by CI; keep metadata only
+release/*/Getmeair.exe
+release/*/Getmeair-Portable.zip
+release/*/Getmeair-Setup-*.exe

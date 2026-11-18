@@ -1,0 +1,10 @@
+# SHA-256 checksums for Getmeair 0.1.1 release files.
+# Compute with: certutil -hashfile <file> SHA256
+# or: sha256sum <file>
+#
+# Getmeair.exe: <not yet built - run the build first>
+# Getmeair-Portable.zip: <not yet built>
+# Getmeair-Setup-0.1.1.exe: <not yet built>
+#
+# Existing installer reference (from previous build, not 0.1.1 source build):
+# (see documentation/TESTING.md)

@@ -1,0 +1,36 @@
+Getmeair 0.1.1 — Changelog
+===========================
+
+New features
+------------
+- Ghost Mode: per-account and per-chat suppression of read receipts,
+  typing, recording, uploads and online status; Stealth/Balanced/Normal
+  profiles; temporary mode; Ctrl+Shift+G shortcut; status indicator in
+  the window title.
+- Message History: local append-only JSONL archive of deleted and edited
+  messages; search; retention days and storage cap; clear with
+  confirmation. Self-destruct/one-time content is never archived.
+- Streamer Mode: redact peer names, notification text and phone numbers;
+  window title redaction; screen-capture exclusion via OS API;
+  Ctrl+Shift+M shortcut.
+- Getmeair Control Center section in Settings (replaces scattered toggles
+  with a single hub).
+- Per-account settings persistence in cWorkingDir()/getmeair/settings.json.
+- Backend (Node.js 26 + SQLite): auth, roles, verification, Firecoins
+  ledger, admin audit, plugin catalog.
+- Plugin host (process isolation, JSON-RPC IPC, permission checks, SDK).
+
+Fixed
+-----
+- Read-receipt suppression now flushes postponed receipts when disabled.
+- Window title now reflects Ghost/Streamer state.
+- Notification text redaction applied before native notification display.
+
+Known limitations
+-----------------
+- C++ client build requires a full MSVC/Qt/CMake toolchain (see
+  documentation/BUILD_REQUIREMENTS.md). The binary in this folder is not
+  produced by this preparation step; run the build instructions to
+  compile Getmeair.exe from the modified source.
+- Screen-capture exclusion may not work with every capture method.
+- Ghost Mode is client-side suppression, not anonymity.

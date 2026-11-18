@@ -1,0 +1,14 @@
+{
+  "name": "getmeair-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Getmeair backend: owner, verification, ranks, Firecoins wallet, admin audit and plugin catalog.",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

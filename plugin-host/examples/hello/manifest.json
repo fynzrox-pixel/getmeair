@@ -1,0 +1,15 @@
+{
+  "id": "com.getmeair.example.hello",
+  "name": "Hello Getmeair",
+  "description": "Reference plugin showing commands, menu items, message events and storage.",
+  "version": "1.0.0",
+  "author": "Getmeair",
+  "icon": "icon.png",
+  "apiVersion": "1.0",
+  "entry": "main.mjs",
+  "runtime": "node",
+  "permissions": ["commands", "menu", "storage", "events.messages"],
+  "config": {
+    "greeting": "Hello from Getmeair"
+  }
+}

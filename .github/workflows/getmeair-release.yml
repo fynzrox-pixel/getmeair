@@ -1,0 +1,141 @@
+name: Getmeair 0.1.1 Release Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v0.1.1'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 330
+    env:
+      TDESKTOP_API_ID: ${{ secrets.TDESKTOP_API_ID }}
+      TDESKTOP_API_HASH: ${{ secrets.TDESKTOP_API_HASH }}
+    steps:
+      - name: Checkout Getmeair overlay + server + plugin-host
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC x64 environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Clone Telegram Desktop v7.4.4 (recursive)
+        shell: pwsh
+        run: |
+          git clone --recursive --branch v7.4.4 https://github.com/telegramdesktop/tdesktop.git C:\build\tdesktop
+          if ($LASTEXITCODE -ne 0) { throw "clone failed" }
+
+      - name: Apply Getmeair overlay
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE\scripts\apply_overlay.ps1" -TdesktopRoot C:\build\tdesktop
+
+      - name: Run server tests
+        shell: pwsh
+        run: |
+          Set-Location "$env:GITHUB_WORKSPACE\server"
+          npm test 2>&1 | Tee-Object -FilePath server-test.log
+          # node --test
+          node --test 'test/*.test.mjs'
+
+      - name: Run plugin-host tests
+        shell: pwsh
+        run: |
+          Set-Location "$env:GITHUB_WORKSPACE\plugin-host"
+          node --test 'test/*.test.mjs'
+
+      - name: Prepare tdesktop dependencies
+        shell: pwsh
+        run: |
+          $bp = "C:\build"
+          New-Item -ItemType Directory -Force -Path "$bp\ThirdParty","$bp\Libraries" | Out-Null
+          Set-Location "$bp\tdesktop\Telegram\build\prepare"
+          & .\win.bat
+
+      - name: Configure Telegram (x64)
+        shell: pwsh
+        run: |
+          if (-not $env:TDESKTOP_API_ID -or -not $env:TDESKTOP_API_HASH) {
+            throw "Missing TDESKTOP_API_ID / TDESKTOP_API_HASH secrets"
+          }
+          Set-Location "C:\build\tdesktop\Telegram"
+          & .\configure.bat x64 -D "TDESKTOP_API_ID=$env:TDESKTOP_API_ID" -D "TDESKTOP_API_HASH=$env:TDESKTOP_API_HASH"
+
+      - name: Build Release (MSBuild)
+        shell: pwsh
+        run: |
+          $sln = "C:\build\tdesktop\out\Telegram.slnx"
+          if (-not (Test-Path $sln)) { $sln = "C:\build\tdesktop\out\Telegram.sln" }
+          msbuild $sln /p:Configuration=Release /p:Platform=x64 /m
+
+      - name: Locate and rename binary
+        shell: pwsh
+        run: |
+          $bin = Get-ChildItem -Path "C:\build\tdesktop\out" -Recurse -Filter "Telegram.exe" | Select-Object -First 1
+          if (-not $bin) { throw "Telegram.exe not found" }
+          Copy-Item $bin.FullName "C:\build\Getmeair.exe" -Force
+          Write-Output "Built: $($bin.FullName)"
+
+      - name: Package portable zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "C:\build\Getmeair.exe" -DestinationPath "C:\build\Getmeair-Portable.zip" -Force
+
+      - name: Build installer (best effort)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          New-Item -ItemType Directory -Force -Path "C:\build\tdesktop\out\..\..\build\modules" | Out-Null
+          # Place the built exe where the installer script expects it
+          Copy-Item "C:\build\Getmeair.exe" "C:\build\tdesktop\build\Getmeair.exe" -Force -ErrorAction SilentlyContinue
+          # Run against a staged project root
+          $stage = "C:\build\getmeair-stage"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item "$env:GITHUB_WORKSPACE\installer" "$stage\installer" -Recurse -Force
+          Copy-Item "$env:GITHUB_WORKSPACE\assets" "$stage\assets" -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path "$stage\build" | Out-Null
+          Copy-Item "C:\build\Getmeair.exe" "$stage\build\Getmeair.exe" -Force
+          New-Item -ItemType Directory -Force -Path "$stage\build\modules" | Out-Null
+          & "$stage\installer\.." 2>$null
+          pwsh -File "$env:GITHUB_WORKSPACE\scripts\build_installer.ps1" -ProjectRoot $stage 2>&1 | Tee-Object -FilePath "$stage\installer-build.log"
+          if (Test-Path "$stage\installer\Getmeair Setup.exe") {
+            Copy-Item "$stage\installer\Getmeair Setup.exe" "C:\build\Getmeair-Setup-0.1.1.exe" -Force
+          }
+
+      - name: Compute SHA-256
+        shell: pwsh
+        run: |
+          "Getmeair.exe: " + (Get-FileHash "C:\build\Getmeair.exe" -Algorithm SHA256).Hash
+          "Getmeair-Portable.zip: " + (Get-FileHash "C:\build\Getmeair-Portable.zip" -Algorithm SHA256).Hash
+
+      - name: Stage artifacts in workspace
+        shell: pwsh
+        run: |
+          $art = Join-Path $env:GITHUB_WORKSPACE 'artifacts'
+          New-Item -ItemType Directory -Force -Path $art | Out-Null
+          Copy-Item 'C:\build\Getmeair.exe' $art -Force
+          Copy-Item 'C:\build\Getmeair-Portable.zip' $art -Force
+          if (Test-Path 'C:\build\Getmeair-Setup-0.1.1.exe') {
+            Copy-Item 'C:\build\Getmeair-Setup-0.1.1.exe' $art -Force
+          }
+          Get-ChildItem $art
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Getmeair-0.1.1-windows-x64
+          path: artifacts/
+          retention-days: 30
