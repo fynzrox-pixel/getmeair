@@ -27,10 +27,21 @@ jobs:
         shell: pwsh
         run: |
           $vsPath = "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise"
+          # Try vs_installer first
           $installer = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vs_installer.exe"
-          & $installer modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --quiet --norestart --wait
-          Write-Output "ATL install exit code: $LASTEXITCODE"
-          Test-Path "$vsPath\\VC\\atlmfc\\include\\atlbase.h"
+          $proc = Start-Process -FilePath $installer -ArgumentList "modify","--installPath",$vsPath,"--add","Microsoft.VisualStudio.Component.VC.ATL","--quiet","--norestart","--wait" -Wait -PassThru
+          Write-Output "vs_installer exit code: $($proc.ExitCode)"
+          # Verify
+          $atlPath = "$vsPath\\VC\\atlmfc\\include\\atlbase.h"
+          Write-Output "ATL present: $(Test-Path $atlPath)"
+          if (-not (Test-Path $atlPath)) {
+            # Fallback: try vs_buildtools standalone
+            Write-Output "Trying vs_buildtools standalone..."
+            Invoke-WebRequest -Uri "https://aka.ms/vs/18/release/vs_buildtools.exe" -OutFile "vs_buildtools.exe" -ErrorAction SilentlyContinue
+            $p2 = Start-Process -FilePath ".\\vs_buildtools.exe" -ArgumentList "--quiet","--wait","--norestart","--nocache","--add","Microsoft.VisualStudio.Component.VC.ATL","--installPath",$vsPath -Wait -PassThru
+            Write-Output "vs_buildtools exit code: $($p2.ExitCode)"
+            Write-Output "ATL present after fallback: $(Test-Path $atlPath)"
+          }
 
       - name: Setup Python
         uses: actions/setup-python@v5
