@@ -23,28 +23,6 @@ jobs:
           arch: x64
           toolset: '14.44'
 
-      - name: Skip breakpad (ATL not available on runner)
-        shell: python
-        run: |
-          import re
-          p = "C:/build/tdesktop/Telegram/build/prepare/prepare.py"
-          s = open(p).read()
-          # Find the breakpad stage block and remove it
-          start = s.find("stage('breakpad'")
-          if start == -1:
-              print("breakpad stage not found, skipping patch")
-          else:
-              # find the matching closing - search for next "\n\n" followed by stage( or end
-              # The stage call ends with a triple-quoted string followed by ")"
-              # Find from start to the next stage( or end of file
-              end = s.find("stage('", start + 1)
-              if end == -1:
-                  end = len(s)
-              # Remove from start to end, keeping a newline
-              s = s[:start] + s[end:]
-              open(p, 'w').write(s)
-              print("Patched prepare.py: removed breakpad stage")
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -61,6 +39,22 @@ jobs:
           git clone --recursive --branch v7.4.4 https://github.com/telegramdesktop/tdesktop.git C:\build\tdesktop
           if ($LASTEXITCODE -ne 0) { throw "clone failed" }
 
+      - name: Skip breakpad stage (ATL not available on runner)
+        shell: python
+        run: |
+          p = "C:/build/tdesktop/Telegram/build/prepare/prepare.py"
+          s = open(p).read()
+          start = s.find("stage('breakpad'")
+          if start == -1:
+              print("breakpad stage not found, skipping patch")
+          else:
+              end = s.find("stage('", start + 1)
+              if end == -1:
+                  end = len(s)
+              s = s[:start] + s[end:]
+              open(p, 'w').write(s)
+              print("Patched prepare.py: removed breakpad stage")
+
       - name: Apply Getmeair overlay
         shell: pwsh
         run: |
@@ -70,8 +64,6 @@ jobs:
         shell: pwsh
         run: |
           Set-Location "$env:GITHUB_WORKSPACE\server"
-          npm test 2>&1 | Tee-Object -FilePath server-test.log
-          # node --test
           node --test 'test/*.test.mjs'
 
       - name: Run plugin-host tests
@@ -121,10 +113,6 @@ jobs:
         shell: pwsh
         continue-on-error: true
         run: |
-          New-Item -ItemType Directory -Force -Path "C:\build\tdesktop\out\..\..\build\modules" | Out-Null
-          # Place the built exe where the installer script expects it
-          Copy-Item "C:\build\Getmeair.exe" "C:\build\tdesktop\build\Getmeair.exe" -Force -ErrorAction SilentlyContinue
-          # Run against a staged project root
           $stage = "C:\build\getmeair-stage"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           Copy-Item "$env:GITHUB_WORKSPACE\installer" "$stage\installer" -Recurse -Force
@@ -132,7 +120,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path "$stage\build" | Out-Null
           Copy-Item "C:\build\Getmeair.exe" "$stage\build\Getmeair.exe" -Force
           New-Item -ItemType Directory -Force -Path "$stage\build\modules" | Out-Null
-          & "$stage\installer\.." 2>$null
           pwsh -File "$env:GITHUB_WORKSPACE\scripts\build_installer.ps1" -ProjectRoot $stage 2>&1 | Tee-Object -FilePath "$stage\installer-build.log"
           if (Test-Path "$stage\installer\Getmeair Setup.exe") {
             Copy-Item "$stage\installer\Getmeair Setup.exe" "C:\build\Getmeair-Setup-0.1.1.exe" -Force
@@ -143,6 +130,9 @@ jobs:
         run: |
           "Getmeair.exe: " + (Get-FileHash "C:\build\Getmeair.exe" -Algorithm SHA256).Hash
           "Getmeair-Portable.zip: " + (Get-FileHash "C:\build\Getmeair-Portable.zip" -Algorithm SHA256).Hash
+          if (Test-Path "C:\build\Getmeair-Setup-0.1.1.exe") {
+            "Getmeair-Setup-0.1.1.exe: " + (Get-FileHash "C:\build\Getmeair-Setup-0.1.1.exe" -Algorithm SHA256).Hash
+          }
 
       - name: Stage artifacts in workspace
         shell: pwsh
