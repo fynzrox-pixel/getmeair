@@ -21,6 +21,16 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
+          toolset: '14.44'
+
+      - name: Install ATL component (required by breakpad)
+        shell: pwsh
+        run: |
+          $vsPath = "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise"
+          $installer = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vs_installer.exe"
+          & $installer modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --quiet --norestart --wait
+          Write-Output "ATL install exit code: $LASTEXITCODE"
+          Test-Path "$vsPath\\VC\\atlmfc\\include\\atlbase.h"
 
       - name: Setup Python
         uses: actions/setup-python@v5
