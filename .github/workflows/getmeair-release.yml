@@ -117,6 +117,15 @@ jobs:
           # Remove all hosted toolcache except Python 3.11
           Get-ChildItem "C:\hostedtoolcache\windows" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike 'Python*' } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
           Get-ChildItem "C:\hostedtoolcache\windows\Python" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '3.11*' } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          # Remove additional large directories
+          Remove-Item -Recurse -Force "C:\Program Files\Microsoft SQL Server" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Program Files (x86)\Microsoft SQL Server" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Program Files\Microsoft SDKs" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Program Files (x86)\Microsoft SDKs" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Program Files\PowerShell" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Program Files (x86)\Windows Kits\10\bin" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Program Files (x86)\Windows Kits\10\Debuggers" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Windows\Microsoft.NET\Framework64\v4.0.30319" -ErrorAction SilentlyContinue
           Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='FreeGB';E={[math]::Round($_.Free/1GB,2)}} | Format-Table -AutoSize
 
       - name: Prepare tdesktop dependencies
