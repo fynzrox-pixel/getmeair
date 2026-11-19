@@ -114,7 +114,7 @@ jobs:
           $bp = "C:\build"
           New-Item -ItemType Directory -Force -Path "$bp\ThirdParty","$bp\Libraries" | Out-Null
           Set-Location "$bp\tdesktop\Telegram\build\prepare"
-          & .\win.bat skip-release silent
+          & .\win.bat silent
 
       - name: Configure Telegram (x64)
         shell: pwsh
