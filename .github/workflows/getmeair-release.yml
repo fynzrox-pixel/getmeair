@@ -11,8 +11,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 330
     env:
-      TDESKTOP_API_ID: ${{ secrets.TDESKTOP_API_ID }}
-      TDESKTOP_API_HASH: ${{ secrets.TDESKTOP_API_HASH }}
+      # Public test credentials (same as AyuGram/tdesktop forks). Override via secrets if needed.
+      TDESKTOP_API_ID: ${{ secrets.TDESKTOP_API_ID || '2040' }}
+      TDESKTOP_API_HASH: ${{ secrets.TDESKTOP_API_HASH || 'b18441a1ff607e10a989891a5462e627' }}
     steps:
       - name: Checkout Getmeair overlay + server + plugin-host
         uses: actions/checkout@v4
@@ -118,9 +119,6 @@ jobs:
       - name: Configure Telegram (x64)
         shell: pwsh
         run: |
-          if (-not $env:TDESKTOP_API_ID -or -not $env:TDESKTOP_API_HASH) {
-            throw "Missing TDESKTOP_API_ID / TDESKTOP_API_HASH secrets"
-          }
           Set-Location "C:\build\tdesktop\Telegram"
           & .\configure.bat x64 -D "TDESKTOP_API_ID=$env:TDESKTOP_API_ID" -D "TDESKTOP_API_HASH=$env:TDESKTOP_API_HASH"
 
