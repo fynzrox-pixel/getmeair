@@ -52,8 +52,11 @@ jobs:
               if end == -1:
                   end = len(s)
               s = s[:start] + s[end:]
-              open(p, 'w').write(s)
-              print("Patched prepare.py: removed breakpad stage")
+          # Replace jom with nmake (jom not available on runner)
+          s = s.replace("jom -j%NUMBER_OF_PROCESSORS%", "nmake")
+          s = s.replace("jom clean", "nmake clean")
+          open(p, 'w').write(s)
+          print("Patched prepare.py: removed breakpad stage, replaced jom with nmake")
 
       - name: Apply Getmeair overlay
         shell: pwsh
